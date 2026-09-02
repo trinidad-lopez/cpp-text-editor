@@ -1,7 +1,9 @@
 # CPP-TEXT-EDITOR
 
 **Author:** Jose Trinidad Lopez Moreno
+
 **Date:** 08-29-2026
+
 **Version:** 0
 
 ---
