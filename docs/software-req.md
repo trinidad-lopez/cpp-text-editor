@@ -4,7 +4,7 @@
 
 **Date:** 09-02-2026
 
-**Version:** 0.0
+**Version:** 0.1
 
 ---
 
@@ -175,10 +175,10 @@ The editor shall show an error code on the bottom status section, when entering 
 This error shall not close nor block the editor application from running.
 
 REQ-CMD-001
-The editor shall have specific definitions for each command of the commands definition file.
+The editor shall define a syntax for each supported command.
 
 REQ-CMD-002
-The editor shall recognize defined commands, and trigger the implementation.
+The editor shall recognize user input that matches a defined command, and execute its operation.
 
 REQ-UI-001
 The editor shall have a document viewport section and a command line section when running.
