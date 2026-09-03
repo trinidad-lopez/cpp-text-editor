@@ -34,6 +34,7 @@ ifeq ($(OS),Windows_NT)
 MAIN	:= main.exe
 TESTS	:= test.exe
 LGTEST	:= libgtest.a
+GMTESTO	:= gtest-main.o
 GTESTO	:= gtest-all.o
 SOURCEDIRS	:= $(SRC)
 INCLUDEDIRS	:= $(INCLUDE)
@@ -46,6 +47,7 @@ else
 MAIN	:= main
 TESTS	:= test
 LGTEST	:= libgtest
+GMTESTO	:= gtest-main
 GTESTO	:= gtest-all
 SOURCEDIRS	:= $(shell find $(SRC) -type d)
 INCLUDEDIRS	:= $(shell find $(INCLUDE) -type d)
@@ -75,12 +77,15 @@ TESTSRC		:= $(wildcard $(patsubst %,%/*.cpp, $(TESTDIRS)))
 MAINOBJ			:=$(patsubst $(SRC)/%.cpp,$(OUTPUT)/app/%.o, $(SOURCES))
 COREOBJ			:= $(patsubst $(SRC)/core/%.cpp,$(OUTPUT)/app/core/%.o, $(CORE))
 TESTOBJECTS		:= $(patsubst $(TEST)/%.cpp,$(OUTPUT)/tests/%.o, $(TESTSRC))
+GTESTMAINOBJECT	:= $(OUTPUT)/tests/$(GMTESTO)
 GTESTALLOBJECT	:= $(OUTPUT)/tests/$(GTESTO)
 
 # define the dependency output files
 MDEPS		:= $(MAINOBJ:.o=.d)
 CDEPS		:= $(COREOBJ:.o=.d)
 TDEPS		:= $(TESTOBJECTS:.o=.d)
+GTESTM		:= $(GTESTMAINOBJECT:.o=d)
+GTESTA		:= $(GTESTALLOBJECT:.o=d)
 
 #
 # The following part of the makefile is generic; it can be used to
@@ -91,34 +96,49 @@ TDEPS		:= $(TESTOBJECTS:.o=.d)
 OUTPUTMAIN	:= $(OUTPUT)/app/$(MAIN)
 OUTPUTTEST	:= $(OUTPUT)/tests/$(TESTS)
 
-all: app build_test run
+.PHONY: all
+all: app build_test
 	@echo Executing 'all' complete!
 
-
+.PHONY: app
 app: $(OUTPUTMAIN)
 	@echo Building 'app' complete!
 
 $(OUTPUT):
-	$(MD) $(OUTPUT)
+	$(MD) $(call FIXPATH, $@)
+
+$(OUTPUT)/app:
+	$(MD) $(call FIXPATH, $@)
+
+$(OUTPUT)/app/core:
+	$(MD) $(call FIXPATH, $@)
+
+$(OUTPUT)/tests:
+	$(MD) $(call FIXPATH, $@)
+
 
 $(OUTPUTMAIN): $(MAINOBJ) $(COREOBJ)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(MAINOBJ) $(COREOBJ) $(LFLAGS) $(LIBS)
 
 # include all .d files
--include $(DEPS)
+-include $(MDEPS)
+-include $(CDEPS)
+-include $(TDEPS)
+-include $(GTESTM)
+-include $(GTESTA)
 
 # this is a suffix replacement rule for building .o's and .d's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file)
 # -MMD generates dependency output files same name as the .o file
 # (see the gnu make manual section about automatic variables)
-$(OUTPUT)/app/%.o: $(SRC)/%.cpp
+$(OUTPUT)/app/%.o: $(SRC)/%.cpp | $(OUTPUT)/app
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD $<  -o $@
 
-$(OUTPUT)/app/core/%.o: $(SRC)/core/%.cpp
+$(OUTPUT)/app/core/%.o: $(SRC)/core/%.cpp | $(OUTPUT)/app/core
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD $<  -o $@
 
-$(OUTPUT)/tests/%.o: $(TEST)/%.cpp
+$(OUTPUT)/tests/%.o: $(TEST)/%.cpp	| $(OUTPUT)/tests
 	$(CXX) $(CXXFLAGS) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) $(INCLUDES) -c -MMD $<  -o $@
 
 .PHONY: clean
@@ -127,6 +147,7 @@ clean:
 	$(RM) $(call FIXPATH, $(OUTPUTTEST))
 	$(RM) $(call FIXPATH, $(LIBGTEST))
 	$(RM) $(call FIXPATH, $(GTESTALLOBJECT))
+	$(RM) $(call FIXPATH, $(GTESTMAINOBJECT))
 	$(RM) $(call FIXPATH,$(MAINOBJ))
 	$(RM) $(call FIXPATH,$(COREOBJ))
 	$(RM) $(call FIXPATH,$(TESTOBJECTS))
@@ -135,27 +156,34 @@ clean:
 	$(RM) $(call FIXPATH,$(TDEPS))
 	@echo Cleanup complete!
 
+.PHONY: run
 run: $(OUTPUTTEST) $(OUTPUTMAIN)
 	./$(OUTPUTTEST)
 	./$(OUTPUTMAIN)
 	@echo Executing 'run' complete!
 
+.PHONY: run_app
 run_app: $(OUTPUTMAIN)
 	./$(OUTPUTMAIN)
 	@echo Executing 'run_app' complete!
 
+.PHONY: run_test
 run_test: $(OUTPUTTEST)
 	./$(OUTPUTTEST)
 	@echo Executing 'run_test' complete!
 
+.PHONY: build_test
 build_test: $(OUTPUTTEST)
 	@echo Building 'tests' complete!
 
-$(OUTPUTTEST): $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTTEST) $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ) $(LFLAGS) $(LIBS)
+$(OUTPUTTEST): $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ) $(GTESTMAINOBJECT)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LFLAGS) $(LIBS)
 
 $(LIBGTEST): $(GTESTALLOBJECT)
 	ar rv $@ $<
 
 $(GTESTALLOBJECT): $(GTEST_DIR)/src/gtest-all.cc
+	$(CXX) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -pthread $(CXXFLAGS) -c $< -o $@
+
+$(GTESTMAINOBJECT): $(GTEST_DIR)/src/gtest_main.cc
 	$(CXX) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -pthread $(CXXFLAGS) -c $< -o $@

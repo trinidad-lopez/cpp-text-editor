@@ -1,7 +1,7 @@
-#include <src/gtest_main.cc>
+#include "gtest/gtest.h"
 #include "mock.h"
 
-TEST(Test, always_pass) {
+TEST(MockTest, alwaysPass) {
     mock_fn();
     EXPECT_EQ(1,1);
 }
