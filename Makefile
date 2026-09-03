@@ -84,8 +84,6 @@ GTESTALLOBJECT	:= $(OUTPUT)/tests/$(GTESTO)
 MDEPS		:= $(MAINOBJ:.o=.d)
 CDEPS		:= $(COREOBJ:.o=.d)
 TDEPS		:= $(TESTOBJECTS:.o=.d)
-GTESTM		:= $(GTESTMAINOBJECT:.o=d)
-GTESTA		:= $(GTESTALLOBJECT:.o=d)
 
 #
 # The following part of the makefile is generic; it can be used to
@@ -124,8 +122,6 @@ $(OUTPUTMAIN): $(MAINOBJ) $(COREOBJ)
 -include $(MDEPS)
 -include $(CDEPS)
 -include $(TDEPS)
--include $(GTESTM)
--include $(GTESTA)
 
 # this is a suffix replacement rule for building .o's and .d's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
@@ -148,12 +144,12 @@ clean:
 	$(RM) $(call FIXPATH, $(LIBGTEST))
 	$(RM) $(call FIXPATH, $(GTESTALLOBJECT))
 	$(RM) $(call FIXPATH, $(GTESTMAINOBJECT))
-	$(RM) $(call FIXPATH,$(MAINOBJ))
-	$(RM) $(call FIXPATH,$(COREOBJ))
-	$(RM) $(call FIXPATH,$(TESTOBJECTS))
-	$(RM) $(call FIXPATH,$(MDEPS))
-	$(RM) $(call FIXPATH,$(CDEPS))
-	$(RM) $(call FIXPATH,$(TDEPS))
+	$(RM) $(call FIXPATH, $(MAINOBJ))
+	$(RM) $(call FIXPATH, $(COREOBJ))
+	$(RM) $(call FIXPATH, $(TESTOBJECTS))
+	$(RM) $(call FIXPATH, $(MDEPS))
+	$(RM) $(call FIXPATH, $(CDEPS))
+	$(RM) $(call FIXPATH, $(TDEPS))
 	@echo Cleanup complete!
 
 .PHONY: run
@@ -182,8 +178,8 @@ $(OUTPUTTEST): $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ) $(GTESTMAINOBJECT)
 $(LIBGTEST): $(GTESTALLOBJECT)
 	ar rv $@ $<
 
-$(GTESTALLOBJECT): $(GTEST_DIR)/src/gtest-all.cc
+$(GTESTALLOBJECT): $(GTEST_DIR)/src/gtest-all.cc | $(OUTPUT)/tests
 	$(CXX) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -pthread $(CXXFLAGS) -c $< -o $@
 
-$(GTESTMAINOBJECT): $(GTEST_DIR)/src/gtest_main.cc
+$(GTESTMAINOBJECT): $(GTEST_DIR)/src/gtest_main.cc | $(OUTPUT)/tests
 	$(CXX) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -pthread $(CXXFLAGS) -c $< -o $@
