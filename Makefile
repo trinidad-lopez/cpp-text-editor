@@ -8,6 +8,7 @@ CXX = g++
 
 # define any compile-time flags
 CXXFLAGS	:= -std=c++17 -Wall -Wextra -g
+GTEST_DIR = C:/dev/c++/googletest/googletest
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
@@ -26,19 +27,30 @@ INCLUDE	:= include
 # define lib directory
 LIB		:= lib
 
+# define test directory
+TEST	:= test
+
 ifeq ($(OS),Windows_NT)
 MAIN	:= main.exe
+TESTS	:= test.exe
+LGTEST	:= libgtest.a
+GTESTO	:= gtest-all.o
 SOURCEDIRS	:= $(SRC)
 INCLUDEDIRS	:= $(INCLUDE)
 LIBDIRS		:= $(LIB)
+TESTDIRS	:= $(TEST)
 FIXPATH = $(subst /,\,$1)
 RM			:= del /q /f
 MD	:= mkdir
 else
 MAIN	:= main
+TESTS	:= test
+LGTEST	:= libgtest
+GTESTO	:= gtest-all
 SOURCEDIRS	:= $(shell find $(SRC) -type d)
 INCLUDEDIRS	:= $(shell find $(INCLUDE) -type d)
 LIBDIRS		:= $(shell find $(LIB) -type d)
+TESTDIRS	:= $(shell find $(TEST) -type d)
 FIXPATH = $1
 RM = rm -f
 MD	:= mkdir -p
@@ -46,18 +58,29 @@ endif
 
 # define any directories containing header files other than /usr/include
 INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
+# GTEST_I		:= $(patsubst %,-I%, $(GTEST_DIR:%/=%))
 
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
+LIBGTEST	:= $(OUTPUT)/tests/$(LGTEST)
 
 # define the C source files
 SOURCES		:= $(wildcard $(patsubst %,%/*.cpp, $(SOURCEDIRS)))
+CORE		:= $(wildcard $(patsubst %,%/*.cpp, $(SOURCEDIRS)/core))
+
+# define the test source files
+TESTSRC		:= $(wildcard $(patsubst %,%/*.cpp, $(TESTDIRS)))
 
 # define the C object files
-OBJECTS		:= $(SOURCES:.cpp=.o)
+MAINOBJ			:=$(patsubst $(SRC)/%.cpp,$(OUTPUT)/app/%.o, $(SOURCES))
+COREOBJ			:= $(patsubst $(SRC)/core/%.cpp,$(OUTPUT)/app/core/%.o, $(CORE))
+TESTOBJECTS		:= $(patsubst $(TEST)/%.cpp,$(OUTPUT)/tests/%.o, $(TESTSRC))
+GTESTALLOBJECT	:= $(OUTPUT)/tests/$(GTESTO)
 
 # define the dependency output files
-DEPS		:= $(OBJECTS:.o=.d)
+MDEPS		:= $(MAINOBJ:.o=.d)
+CDEPS		:= $(COREOBJ:.o=.d)
+TDEPS		:= $(TESTOBJECTS:.o=.d)
 
 #
 # The following part of the makefile is generic; it can be used to
@@ -65,16 +88,21 @@ DEPS		:= $(OBJECTS:.o=.d)
 # deleting dependencies appended to the file from 'make depend'
 #
 
-OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
+OUTPUTMAIN	:= $(OUTPUT)/app/$(MAIN)
+OUTPUTTEST	:= $(OUTPUT)/tests/$(TESTS)
 
-all: $(OUTPUT) $(MAIN)
+all: app build_test run
 	@echo Executing 'all' complete!
+
+
+app: $(OUTPUTMAIN)
+	@echo Building 'app' complete!
 
 $(OUTPUT):
 	$(MD) $(OUTPUT)
 
-$(MAIN): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
+$(OUTPUTMAIN): $(MAINOBJ) $(COREOBJ)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(MAINOBJ) $(COREOBJ) $(LFLAGS) $(LIBS)
 
 # include all .d files
 -include $(DEPS)
@@ -84,16 +112,50 @@ $(MAIN): $(OBJECTS)
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file)
 # -MMD generates dependency output files same name as the .o file
 # (see the gnu make manual section about automatic variables)
-.cpp.o:
+$(OUTPUT)/app/%.o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD $<  -o $@
+
+$(OUTPUT)/app/core/%.o: $(SRC)/core/%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD $<  -o $@
+
+$(OUTPUT)/tests/%.o: $(TEST)/%.cpp
+	$(CXX) $(CXXFLAGS) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) $(INCLUDES) -c -MMD $<  -o $@
 
 .PHONY: clean
 clean:
-	$(RM) $(OUTPUTMAIN)
-	$(RM) $(call FIXPATH,$(OBJECTS))
-	$(RM) $(call FIXPATH,$(DEPS))
+	$(RM) $(call FIXPATH, $(OUTPUTMAIN))
+	$(RM) $(call FIXPATH, $(OUTPUTTEST))
+	$(RM) $(call FIXPATH, $(LIBGTEST))
+	$(RM) $(call FIXPATH, $(GTESTALLOBJECT))
+	$(RM) $(call FIXPATH,$(MAINOBJ))
+	$(RM) $(call FIXPATH,$(COREOBJ))
+	$(RM) $(call FIXPATH,$(TESTOBJECTS))
+	$(RM) $(call FIXPATH,$(MDEPS))
+	$(RM) $(call FIXPATH,$(CDEPS))
+	$(RM) $(call FIXPATH,$(TDEPS))
 	@echo Cleanup complete!
 
-run: all
+run: $(OUTPUTTEST) $(OUTPUTMAIN)
+	./$(OUTPUTTEST)
 	./$(OUTPUTMAIN)
-	@echo Executing 'run: all' complete!
+	@echo Executing 'run' complete!
+
+run_app: $(OUTPUTMAIN)
+	./$(OUTPUTMAIN)
+	@echo Executing 'run_app' complete!
+
+run_test: $(OUTPUTTEST)
+	./$(OUTPUTTEST)
+	@echo Executing 'run_test' complete!
+
+build_test: $(OUTPUTTEST)
+	@echo Building 'tests' complete!
+
+$(OUTPUTTEST): $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTTEST) $(TESTOBJECTS) $(LIBGTEST) $(COREOBJ) $(LFLAGS) $(LIBS)
+
+$(LIBGTEST): $(GTESTALLOBJECT)
+	ar rv $@ $<
+
+$(GTESTALLOBJECT): $(GTEST_DIR)/src/gtest-all.cc
+	$(CXX) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -pthread $(CXXFLAGS) -c $< -o $@
