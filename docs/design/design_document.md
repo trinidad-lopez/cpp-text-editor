@@ -116,11 +116,12 @@ The editor model is not responsible for:
 - Highlighting the selected text.
 - 
 
-Document-Owned
-- Document text: Not saved changes, are not apply to the document, and in turn, could be different between two editor instances, but the editor representation of the Document text, still has to be the actual contents of the document. If the contents change, the editor is forced to consider the original content.
+In Memory Document-Owned
+- Document text: This is the document contents and it needs to owned it to protect its invariants.
 -
+
 Editor-Owned
-- Document path: This is the editor save path for the active document, even if it is changed, it won't affect the original document.
+- Document path: This is the editor saved path for the active document, even if it is changed, it won't affect the original document.
 - Cursor State: The cursor is purely for the editor interaction, and doesn't actually exist on the document.
 - Operations History: The operations history, is for edition convenience and doesn't represent actual metadata that the document saves.
 - Selection: The selection data is for edition convenience.
@@ -130,6 +131,5 @@ Unresolved
 
 ## Open Design Questions
 
-- Does cursor state belong to the document model or editor state?
 - Does each interactable section has its own cursor state or does the cursor has an state for each section?
 - Does selecting a text, saves all characters, or only the range of positions withing the active document?
