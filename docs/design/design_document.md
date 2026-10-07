@@ -56,21 +56,13 @@ The editor must represent the system path of the current active document.
 Derived from:
 - REQ-FILE-004
 
-### File Browser
-
-The file browser must represent the tree of the the system files.
-
-Derived from:
-- REQ-FILE-001
-
 ### Cursor State
 
-The editor must represent the current cursor and column within the active document.
+The editor must represent the current cursor insertion position within the active document lines and columns.
 
 Derived from:
 - REQ-NAV-001
 - REQ-NAV-002
-- REQ-UI-007
 
 ### Operations History
 
@@ -107,7 +99,7 @@ Derived from:
 ### INV-CURSOR-002
 
 The cursor column shall identify an existing column on the current line.
-0 <= cursor.column < current_line.length
+0 <= cursor.column <= current_line.length
 
 Derived from:
 - REQ-NAV-001
@@ -116,8 +108,8 @@ Derived from:
 
 The editor model is responsible for:
 - Keeping the document valid structure after each edit operation.
-- Keeping a valid path for a saved document.
-- 
+- Saving documents on a valid path.
+- Keeping a valid history of edit operations.
 
 The editor model is not responsible for:
 - Fitting the document on the document view.
@@ -128,4 +120,4 @@ The editor model is not responsible for:
 
 - Does cursor state belong to the document model or editor state?
 - Does each interactable section has its own cursor state or does the cursor has an state for each section?
-- 
+- Does selecting a text, saves all characters, or only the range of positions withing the active document?
