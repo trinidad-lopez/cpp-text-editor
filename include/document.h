@@ -1,3 +1,4 @@
+#pragma once
 
 #include <string>
 #include <vector>
@@ -19,7 +20,7 @@ namespace editor_core
          * 
          * @param contents  Text to initialize the document contents.
          */
-        Document(const std::vector<std::string> contents);
+        Document(const std::vector<std::string> &contents = std::vector<std::string>({""}));
 
         /**
          * @brief Inserts character at position. 
@@ -77,42 +78,55 @@ namespace editor_core
         /**
          * @brief Length of given line. 
          * 
+         * The selected line has to be on the range: 
+         *      0 <= line < lines
+         * 
          * @param line   Selected line.
          * @return Length
+         * @note Returns -1 when out of range.
          */
-        int get_column_len(int line);
+        int get_column_len(int line) const;
 
         /**
          * @brief Number of lines on document. 
          * 
          * @return Number
          */
-        int get_line_count();
+        int get_line_count() const;
 
         /**
          * @brief Returns a copy of the string of a line. 
          * 
+         * The selected line has to be on the range: 
+         *      0 <= line < lines
+         * 
+         * @param line  Selected line.
          * @return String
+         * @note Returns {0} when out of range.
          */
-        std::string get_line(int line);
+        std::string get_line(int line) const;
 
         /**
          * @brief Returns copy of the Document from given range. 
          * 
-         * It returns {0} if the range is not valid.
+         * The positions have to be on the range: 
+         *      0 <= pos.line < lines
+         *      0 <= pos.column < line.size
+         * The relation between both positions has to be Start < End.
          * 
          * @param start     Start of range.
          * @param end       End of range.
          * @return Vector<String>
+         * @note Returns empty when arguments are invalid.
          */
-        std::vector<std::string> readDocument(position start, position end);
+        std::vector<std::string> readDocument(position start, position end) const;
 
         /**
          * @brief Returns copy of the Document.
          * 
          * @return Vector<String>
          */
-        std::vector<std::string> readFullDocument(); 
+        std::vector<std::string> readFullDocument() const; 
 
         private:
         std::vector<std::string> document_text;
@@ -123,7 +137,7 @@ namespace editor_core
          * @param text  Vector of strings.
          * @return true/false
          */
-        bool text_valid(std::vector<std::string> text);
+        bool text_valid(const std::vector<std::string> &text);
 
 
     };
